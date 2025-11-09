@@ -1,0 +1,88 @@
+---
+
+#accessPoints:
+#  myService:
+#    title: 'My remote service'
+#    host: <host>
+#    port: 9999
+#    token: '***'
+#    consulServiceName: <consulServiceName>
+
+consul:
+  check:
+    interval: '10s'
+    timeout: '5s'
+    deregistercriticalserviceafter: '3m'
+  agent:
+    dev:
+      dc: 'dc-dev'
+      host: 'consul.entapp.work'
+      port: 443
+      secure: true
+      token: '***'
+    prd:
+      dc: 'dc-prd'
+      host: 'consul.entapp.work'
+      port: 443
+      secure: true
+      token: '***'
+    reg:
+      host: null
+      port: 8500
+      secure: false
+      token: '***'
+  service:
+    name: <name> # Will be pulled up from package.json
+    instance: '???'
+    version: <version> # Will be pulled up from package.json
+    description: <description> # Will be pulled up from package.json
+    tags: [] # Will be pulled up from package.json
+    meta:
+      # "About" page link template
+      who: 'http://{address}:{port}/'
+    noRegOnStart: true # If true - disable the registration of the service with the consul
+  envCode:
+      prod: <env_prefix>r01 # Required - product contour code
+      dev: <env_prefix>e01 # Required - code of the development circuit
+
+db:
+  postgres:
+    dbs:
+      main:
+        label: 'My Database'
+        host: ''  # To exclude the use of the database, you need to set host = ''
+        port: 5432
+        database: <database>
+        user: <user>
+        password: <password>
+        usedExtensions: []
+
+logger:
+  level: info
+  useFileLogger: true
+
+mcp:
+  transportType: http # stdio | http
+  toolAnswerAs: text # text | structuredContent
+  rateLimit:
+    maxRequests: 100
+    windowMs: 60000  # 1 minute
+
+swagger:
+  servers:  # An array of servers that will be added to swagger docs
+    - url: http://localhost:9020
+      description: "Development server (localhost)"
+    - url: http://0.0.0.0:9020
+      description: "Development server (all interfaces)"
+
+uiColor:
+  primary: '#0f65dc'
+
+webServer:
+  host: '0.0.0.0'
+  port: 9020
+  originHosts: ['localhost', '0.0.0.0']
+  auth:
+    enabled: false
+    permanentServerTokens: []
+    tokenEncryptKey: '***'

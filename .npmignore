@@ -1,32 +1,66 @@
+# Development and IDE files
 .claude/
 .idea/
 .git/
 .run/
 .serena/
-_fta/
-_test-data/
-_tmp/
-docs/
-node_modules/
-prompts/
-scripts/
+.vscode/
+.env
+.env.*
+
+# Source and development files
 src/
 test/
+tests/
+__tests__/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
 
+# Configuration files
 .editorconfig
-.env
 .gitignore
-CLAUDE.md
 eslint.config.js
-package-lock.json
 tsconfig.json
+tsconfig.*.json
+jest.config.*
+vitest.config.*
 
-assets_data.json
-
+# Build artifacts to exclude
 dist/**/*.map
-dist/**/*.d.ts
+coverage/
 
-# Keep only these
+# Documentation (keep README.md)
+docs/
+doc/
+CHANGELOG.md
+CONTRIBUTING.md
+DEVELOPMENT.md
+
+# Temporary and test files
+_tmp/
+_test*/
+_misc/
+temp/
+tmp/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Scripts and tools
+scripts/
+src/template/tools/
+deploy/
+
+# Project-specific exclusions
+config/
+assets_data.json
+publish.sh
+
+# Keep only these essential files for publication
 !dist/
 !README.md
 !LICENSE

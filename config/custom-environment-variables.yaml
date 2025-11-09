@@ -1,0 +1,27 @@
+db:
+  postgres:
+    dbs:
+      main:
+        database: DB_NAME
+        host: DB_HOST
+        port: DB_PORT
+        user: DB_USER
+        password: DB_PASSWORD
+
+logger:
+  level: LOGGER_LEVEL
+
+mcp:
+  transportType: MCP_TRANSPORT_TYPE
+  toolAnswerAs: MCP_TOOL_ANSWER_AS
+  rateLimit:
+    maxRequests: MCP_RATE_LIMIT_MAX_REQUESTS
+    windowMs: MCP_RATE_LIMIT_WINDOW_MS
+
+webServer:
+  host: WS_HOST
+  port: WS_PORT
+  auth:
+    enabled: WS_AUTH_ENABLED
+    permanentServerTokens: WS_SERVER_TOKENS # comma separated list
+    tokenEncryptKey: WS_TOKEN_ENCRYPT_KEY

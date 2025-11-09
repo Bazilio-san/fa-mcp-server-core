@@ -78,8 +78,10 @@ local-*.*
 _api_responses/
 _logs/
 /config.yaml
-/glm.ps1
+/.claude/glm.ps1
 
 /_misc_/
 /deploy/config.yml
 /config/__server__/
+glm.ps1
+glm.sh

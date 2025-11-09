@@ -1,0 +1,55 @@
+# Copy this file to local.yaml and update with your database credentials
+# local.yaml is gitignored and won't be committed
+---
+consul:
+  agent:
+    dev:
+      token: '***'
+    prd:
+      token: '***'
+    reg:
+      host: '***'
+      token: '***'
+  service:
+    instance: "??"
+    noRegOnStart: true # If true - Allows you to disable the registration of the service with the consul
+  envCode:
+    prod: <env_prefix>r01 # Required - product contour code
+    dev: <env_prefix>e01 # Required - code of the development circuit
+
+db:
+  postgres:
+    dbs:
+      main:
+        label: 'Your Database Label'
+        database: your_database
+        host: 'your_host' # To exclude the use of the database, you need to set host = ''
+        port: 5432
+        user: your_user
+        password: your_password
+        usedExtensions:
+          - pgvector
+
+logger:
+  level: info
+  useFileLogger: true
+
+mcp:
+  transportType: http # 'stdio' or 'http'
+  toolAnswerAs: text # text | structuredContent
+  rateLimit:
+    maxRequests: 100
+    windowMs: 60000  # 1 minute
+
+swagger:
+  servers:  # An array of servers that will be added to swagger docs
+    - url: http://localhost:9020
+      description: "Local server"
+
+webServer:
+  port: 9020
+  originHosts: ['localhost', '0.0.0.0']
+  auth:
+    enabled: false
+    permanentServerTokens: []
+    tokenEncryptKey: '***'

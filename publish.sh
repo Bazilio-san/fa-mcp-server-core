@@ -1,5 +1,7 @@
 #!/bin/bash
 
+expected_branch="master"
+
 c='\033[0;35m'
 y='\033[0;33m'
 r='\033[0;31m'
@@ -26,7 +28,6 @@ set +e
 branch_name=$(git symbolic-ref --short HEAD)
 exit_on_error "$y**** Version will not be bumped since retcode is not equals 0 ****$c0"
 
-expected_branch="main"
 if [[ "$branch_name" != "$expected_branch" ]] ; then
   echo -e "${y}**** git branch should be ${c}{$expected_branch}${y}, current: ${c}${branch_name}${y}  ****$c0"
   read -p "Press any key to resume ..."
@@ -67,8 +68,8 @@ exit_on_error
 git commit --no-verify -m "$new_version"
 exit_on_error
 
-git push origin refs/heads/main:main
+git push origin refs/heads/${expected_branch}:${expected_branch}
 exit_on_error
-
+# npm pack --dry-run
 npm publish
 read -p "Press any key to resume ..."
