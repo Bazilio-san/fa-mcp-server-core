@@ -1,27 +1,38 @@
-import { appConfig } from '../core/index.js';
+import { getJsonFromResult } from '../core/index.js';
 
-export const getJsonFromResult = (result: any) => {
-  if (appConfig.toolAnswerAs === 'structuredContent') {
-    return result?.result?.structuredContent || result?.structuredContent;
-  } else {
-    const text = result?.result?.content?.[0]?.text || result?.content?.[0]?.text || '';
-    try {
-      return JSON.parse(text);
-    } catch {
-      //
-    }
+async function safeReadText (res: Response): Promise<string | undefined> {
+  try {
+    const text = await res.text();
+    return text?.slice(0, 1000);
+  } catch {
+    return undefined;
   }
-  return undefined;
-};
+}
 
 /**
- * MCP SSE Client for testing
- * Uses query parameters for request/response pattern
+ * MCP SSE Client for testing (improved)
+ *
+ * Keeps a single long-lived SSE connection for receiving responses
+ * and sends JSON-RPC requests as separate HTTP POSTs to /rpc.
+ * Supports routing by id and per-operation timeouts.
  */
 export class McpSseClient {
-  private readonly baseUrl: any;
-  private readonly customHeaders: object;
+  private readonly baseUrl: string;
+  private readonly customHeaders: Record<string, string>;
   private requestId: number;
+
+  // SSE connection state
+  private sseAbort?: AbortController | undefined;
+  private sseReaderTask?: Promise<void>;
+  private connected = false;
+
+  // pending requests awaiting response by id
+  private pending = new Map<number, {
+    resolve: (value: any) => void,
+    reject: (reason?: any) => void,
+    timeout: any,
+    method: string,
+  }>();
 
   constructor (baseUrl: string, customHeaders: Record<string, string> = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -29,102 +40,200 @@ export class McpSseClient {
     this.requestId = 1;
   }
 
-  /**
-   * Send MCP request over SSE with query parameters
-   */
-  async sendRequest (method: string, params = {}): Promise<any> {
-    const requestId = this.requestId++;
-    const request = {
-      jsonrpc: '2.0',
-      id: requestId,
-      method,
-      params,
-    };
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error(`Request timeout for method: ${method}`));
-      }, 30000); // 30 second timeout
-
-      this.executeSSERequest(request).then(result => {
-        clearTimeout(timeout);
-        resolve(result);
-      }).catch(error => {
-        clearTimeout(timeout);
-        reject(error);
-      });
+  /** Public API: close SSE and reject all pending */
+  async close () {
+    this.connected = false;
+    if (this.sseAbort) {
+      this.sseAbort.abort();
+      this.sseAbort = undefined;
+    }
+    // Reject all pending
+    const err = new Error('MCP SSE client closed');
+    for (const [id, entry] of this.pending.entries()) {
+      clearTimeout(entry.timeout);
+      entry.reject(err);
+      this.pending.delete(id);
+    }
+    // Wait reader to finish
+    await this.sseReaderTask?.catch(() => {
     });
   }
 
-  /**
-   * Execute SSE request with parameters in URL
-   */
-  private async executeSSERequest (request: any): Promise<any> {
-    const url = new URL(`${this.baseUrl}/sse`);
+  /** Ensure SSE stream established */
+  private async ensureConnected () {
+    if (this.connected) {
+      return;
+    }
+    await this.connect();
+  }
 
-    // Add request parameters as query parameters
-    url.searchParams.set('request', JSON.stringify(request));
+  /** Open SSE stream via fetch and start reader loop */
+  private async connect () {
+    if (this.connected) {
+      return;
+    }
+    const headers: Record<string, string> = {
+      Accept: 'text/event-stream',
+      ...this.customHeaders,
+    };
 
-    // Add custom headers as query parameters
-    Object.entries(this.customHeaders).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
+    this.sseAbort = new AbortController();
+    const url = `${this.baseUrl}/sse`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers,
+      signal: this.sseAbort.signal,
+    } as any);
+
+    if (!res.ok || !res.body) {
+      const text = await safeReadText(res);
+      throw new Error(`Failed to open SSE stream: ${res.status} ${res.statusText}${text ? ' - ' + text : ''}`);
+    }
+
+    this.connected = true;
+    this.sseReaderTask = this.readSseLoop(res.body);
+    // detach errors to console but keep state clean
+    this.sseReaderTask.catch(err => {
+      this.connected = false;
+      // Reject all pending on fatal SSE error
+      for (const [id, entry] of this.pending.entries()) {
+        clearTimeout(entry.timeout);
+        entry.reject(err);
+        this.pending.delete(id);
+      }
     });
+  }
 
-    return new Promise((resolve, reject) => {
-      const eventSource = new EventSource(url.toString());
-
-      const cleanup = () => {
-        eventSource.close();
-      };
-
-      const timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error('SSE connection timeout'));
-      }, 30000);
-
-      eventSource.onopen = () => {
-        console.log('SSE connection opened for request:', request.method);
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          // Check if this is our response
-          if (data.id === request.id) {
-            clearTimeout(timeout);
-            cleanup();
-
-            if (data.error) {
-              const errorObj = new Error(`MCP Error: ${data.error.message || JSON.stringify(data.error)}`);
-              (errorObj as any).data = data.error.data;
-              (errorObj as any).fullMcpResponse = data;
-              reject(errorObj);
-            } else {
-              const res = getJsonFromResult(data.result);
-              if (res?.message) {
-                console.log('  message:', res.message);
-              }
-
-              resolve({
-                result: data.result,
-                requestHeaders: this.customHeaders,
-              });
-            }
-          }
-        } catch (error) {
-          clearTimeout(timeout);
-          cleanup();
-          reject(error);
+  /** Parse SSE stream and dispatch messages by JSON-RPC id */
+  private async readSseLoop (body: ReadableStream<Uint8Array>) {
+    const reader = body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
         }
-      };
+        buffer += decoder.decode(value, { stream: true });
+        // SSE events are separated by double newline
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          this.handleSseEvent(rawEvent);
+        }
+      }
+    } finally {
+      // flush tail
+      const tail = decoder.decode();
+      if (tail) {
+        buffer += tail;
+      }
+      if (buffer.trim()) {
+        this.handleSseEvent(buffer);
+      }
+      this.connected = false;
+    }
+  }
 
-      eventSource.onerror = (error) => {
-        clearTimeout(timeout);
-        cleanup();
-        reject(new Error(`SSE connection error: ${error}`));
-      };
+  /** Handle one SSE event block (multiple lines). Parse data: lines only */
+  private handleSseEvent (eventBlock: string) {
+    // eventBlock may contain comments ": ..." and other fields
+    const lines = eventBlock.split(/\r?\n/);
+    let dataLines: string[] = [];
+    for (const line of lines) {
+      if (!line) {
+        continue;
+      }
+      if (line.startsWith(':')) {
+        continue;
+      } // comment/keepalive
+      if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+      // we ignore id:, event:, retry: for now (not required for simple tests)
+    }
+    if (dataLines.length === 0) {
+      return;
+    }
+    const dataStr = dataLines.join('\n');
+    let payload: any;
+    try {
+      payload = JSON.parse(dataStr);
+    } catch {
+      // non-JSON data frames are ignored in tests
+      return;
+    }
+    const id = payload?.id;
+    if (id == null) {
+      // broadcast/notification — ignore in this test client
+      return;
+    }
+    const pending = this.pending.get(id);
+    if (!pending) {
+      // late/unknown id — ignore silently for tests
+      return;
+    }
+    clearTimeout(pending.timeout);
+    this.pending.delete(id);
+    if (payload.error) {
+      const err = new Error(`MCP Error: ${payload.error?.message || 'Unknown error'}`);
+      (err as any).data = payload.error?.data;
+      (err as any).fullMcpResponse = payload;
+      pending.reject(err);
+    } else {
+      const res = getJsonFromResult(payload.result);
+      if (res?.message) {
+        console.log('  message:', res.message);
+      }
+      pending.resolve({
+        result: payload.result,
+        requestHeaders: this.customHeaders,
+      });
+    }
+  }
+
+  /**
+   * Send JSON-RPC request over HTTP; await response via SSE stream
+   */
+  async sendRequest (method: string, params: Record<string, any> = {}): Promise<any> {
+    await this.ensureConnected();
+
+    const id = this.requestId++;
+    const request = { jsonrpc: '2.0', id, method, params };
+
+    // Prepare promise and timeout
+    const opTimeoutMs = 30000;
+    let timeoutRef: any;
+    const promise = new Promise<any>((resolve, reject) => {
+      timeoutRef = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`Request timeout for method: ${method}`));
+      }, opTimeoutMs);
+      this.pending.set(id, { resolve, reject, timeout: timeoutRef, method });
     });
+
+    // Fire-and-wait: POST to /rpc
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...this.customHeaders,
+    };
+    const res = await fetch(`${this.baseUrl}/rpc`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+    } as any);
+
+    if (!res.ok) {
+      clearTimeout(timeoutRef);
+      this.pending.delete(id);
+      const text = await safeReadText(res);
+      throw new Error(`RPC send failed: ${res.status} ${res.statusText}${text ? ' - ' + text : ''}`);
+    }
+
+    return promise;
   }
 
   async listTools () {
@@ -145,9 +254,7 @@ export class McpSseClient {
   }
 
   async readResource (uri: string) {
-    return this.sendRequest('resources/read', {
-      uri,
-    });
+    return this.sendRequest('resources/read', { uri });
   }
 
   async listPrompts () {
@@ -156,10 +263,7 @@ export class McpSseClient {
   }
 
   async getPrompt (name: string, arguments_: Record<string, any> = {}) {
-    return this.sendRequest('prompts/get', {
-      name,
-      arguments: arguments_,
-    });
+    return this.sendRequest('prompts/get', { name, arguments: arguments_ });
   }
 
   async ping () {

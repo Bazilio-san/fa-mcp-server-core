@@ -1,47 +1,49 @@
+import '../core/bootstrap/dotenv.js';
 import fsp from 'fs/promises';
 import fss from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 
-const RESULTS_DIR = path.join(process.cwd(), '_logs/mcp');
+const testResultLogsDir = process.env.TEST_RESULT_LOGS_DIR || '_logs/mcp';
+
+const RESULTS_DIR = path.join(process.cwd(), testResultLogsDir);
 
 if (!fss.existsSync(RESULTS_DIR)) {
   fss.mkdirSync(RESULTS_DIR, { recursive: true });
 }
 
-
 export interface ITestResult {
-  // Идентификаторы теста / инструмента
+  // Test / tool identifiers
   fullId: string;
   toolName: string;
   description: string;
 
-  // Параметры вызова инструмента
+  // Tool invocation parameters
   parameters: unknown | null;
 
-  // Временные метаданные
-  timestamp: string; // ISO-строка
-  duration: number;  // миллисекунды
+  // Temporal metadata
+  timestamp: string; // ISO string
+  duration: number;  // milliseconds
 
-  // Статус выполнения
+  // Execution status
   status: 'pending' | 'passed' | 'failed' | 'skipped' | 'expected_failure';
 
-  // Маркер-иконка для логов (может отсутствовать в "pending")
+  // Marker icon for logs (may be absent in "pending")
   marker?: string;
 
-  // Ответ MCP
+  // MCP response
   response: unknown | null;
 
-  // Ошибка (человеко-читаемое сообщение)
+  // Error (human-readable message)
   error: string | null;
 
-  // Дополнительные детали ошибки (структурированные)
+  // Additional error details (structured)
   errorDetails?: unknown | null;
 
-  // Полный MCP-ответ при ошибке (JSON-RPC ответ)
+  // Full MCP response on error (JSON-RPC response)
   fullMcpResponse?: unknown;
 
-  // Заголовки запроса, с которыми шёл вызов MCP-сервера
+  // Request headers used for the MCP server call
   requestHeaders?: Record<string, string>;
 }
 
