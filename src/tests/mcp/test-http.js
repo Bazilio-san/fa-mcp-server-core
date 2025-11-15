@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Streamable HTTP transport tests for the template MCP server (src/template)
- * Uses McpHttpClient (NDJSON over a single streaming HTTP request)
+ * HTTP transport tests for the template MCP server (src/template)
+ * Uses McpSimpleHttpClient (simple POST requests)
  */
 
 import { appConfig } from '../../../dist/core/index.js';
-import { McpHttpClient } from '../../../dist/tests/McpHttpClient.js';
+import { McpSimpleHttpClient } from '../../../dist/tests/McpSimpleHttpClient.js';
 import TEMPLATE_TESTS from './test-cases.js';
 
 const baseUrl = (process.env.TEST_MCP_SERVER_URL || `http://localhost:${appConfig.webServer.port}`).replace(/\/+$/,'');
@@ -35,10 +35,10 @@ async function runTestGroup (title, tests, client) {
 }
 
 async function main () {
-  console.log('🧪 HTTP (streamable) tests for template MCP server');
+  console.log('🧪 HTTP tests for template MCP server');
   console.log('='.repeat(60));
 
-  const client = new McpHttpClient(baseUrl);
+  const client = new McpSimpleHttpClient(baseUrl);
   try {
     await client.initialize({
       protocolVersion: '2024-11-05',

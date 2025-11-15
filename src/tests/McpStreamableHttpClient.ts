@@ -49,7 +49,7 @@ export const getJsonFromStreamResult = (result: any) => {
  * Supports a long-lived connection over HTTP (NDJSON),
  * multiple requests/responses and incoming notifications.
  */
-export class McpHttpClient {
+export class McpStreamableHttpClient {
   private readonly baseUrl: string;
   private readonly endpointPath: string;
   private readonly customHeaders: Record<string, string>;

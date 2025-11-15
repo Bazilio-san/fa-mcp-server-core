@@ -90,7 +90,7 @@ export const TEMPLATE_TESTS = {
         const resp = await client.readResource('custom-resource://resource1');
         // Different clients return differently; normalize
         const r = resp?.result || resp;
-        const text = r?.resource?.text || r?.content?.[0]?.text || r?.text || r?.resource?.content;
+        const text = r?.resource?.text || r?.contents?.[0]?.text || r?.text || r?.resource?.content;
         const okText = typeof text === 'string' && text.length > 0;
         return okText ? ok(name, { text }) : fail(name, { response: r });
       } catch (e) {

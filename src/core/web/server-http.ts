@@ -227,7 +227,7 @@ export async function startHttpServer (): Promise<void> {
           break;
 
         case 'resources/read': {
-          result = getResource(params.uri);
+          result = await getResource(params.uri);
           break;
         }
 
