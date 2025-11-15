@@ -108,9 +108,8 @@ export const renderAboutPage = async (): Promise<string> => {
       <div class="header-row">
         <div class="header-title">
           <div class="service-icon">${staffSvg}</div>
-          <h1>${serviceTitle} MCP Server</h1>
+          <h1><span class="MCPServer">MCP Server</span> ${serviceTitle}</h1>
         </div>
-        <div class="status ${statusClass}">${statusText}</div>
       </div>
     </header>
 

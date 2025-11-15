@@ -67,6 +67,7 @@ export interface AppConfig extends ILoggerConfig,
       dev: string; // Required - code of the development circuit
     };
   },
+  toolAnswerAs: 'text' | 'structuredContent',
   uiColor: {
     primary: string; // Interface color
   }

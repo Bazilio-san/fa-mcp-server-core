@@ -13,12 +13,32 @@ export interface IRequiredHttpHeader {
   description: string, // E.g. "JWT Token issued on request"
 }
 
+export interface IResourceInfo {
+  uri: string;
+  name: string;
+  description: string;
+  mimeType: string;
+}
+
+export type TResourceContentFunction = (uri: string) => string | Promise<string>;
+export type IResourceContent = string | TResourceContentFunction;
+
 export interface IResourceData {
   uri: string;
   name: string;
   description: string;
   mimeType: string;
-  content: string | IRequiredHttpHeader[];
+  content: IResourceContent;
+}
+
+export interface IResource {
+  contents: [
+    {
+      uri: string,
+      mimeType: string,
+      text: string,
+    },
+  ],
 }
 
 export type IEndpointsOn404 = Record<string, string | string[]>
@@ -68,7 +88,8 @@ export interface IGetPromptRequest {
   params: IGetPromptParams;
 }
 
-export type IPromptContent = string | ((request: IGetPromptRequest) => string | Promise<string>);
+export type TPromptContentFunction = (request: IGetPromptRequest) => string | Promise<string>
+export type IPromptContent = string | TPromptContentFunction;
 
 export interface IGetPromptParams {
   name: string;

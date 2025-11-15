@@ -174,7 +174,6 @@ App.vue
 - Build commands: npm run dev, npm run build
 - Test setup: Vitest in tests/ directory
 - Deployment: dist/ folder output
-- Hot reload: Vite dev server on port 9020
 
 **Missing Elements & Gaps**:
 
@@ -184,11 +183,6 @@ App.vue
 - TODO comments and fixme notes
 
 **Raw Code Snippets for Reference**:
-
-// Key function signatures for planner reference
-export const setupApp = (config: AppConfig) => { /_ line 12 _/ }
-export const useUserAuth = (): UserAuthState => { /_ line 25 _/ }
-const handleApiError = (error: AxiosError) => { /_ line 134 _/ }
 
 **PLANNER OPTIMIZATION NOTES**:
 

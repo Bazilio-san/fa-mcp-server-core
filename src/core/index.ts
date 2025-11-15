@@ -5,8 +5,15 @@ export type {
   IGetPromptRequest,
   IPromptContent,
   IPromptData,
+  TPromptContentFunction,
+
+  IResource,
+  TResourceContentFunction,
+  IResourceContent,
   IReadResourceRequest,
+  IResourceInfo,
   IResourceData,
+
   IEndpointsOn404,
   ISwaggerData,
   IRequiredHttpHeader,

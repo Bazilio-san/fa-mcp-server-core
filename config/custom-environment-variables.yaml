@@ -10,6 +10,7 @@ db:
 
 logger:
   level: LOGGER_LEVEL
+  useFileLogger: LOGGER_USE_FILE_LOGGER
 
 mcp:
   transportType: MCP_TRANSPORT_TYPE
@@ -17,6 +18,11 @@ mcp:
   rateLimit:
     maxRequests: MCP_RATE_LIMIT_MAX_REQUESTS
     windowMs: MCP_RATE_LIMIT_WINDOW_MS
+
+toolAnswerAs: TOOL_ANSWER_AS
+
+uiColor:
+  primary: UI_COLOR_PRIMARY
 
 webServer:
   host: WS_HOST

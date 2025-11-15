@@ -477,6 +477,10 @@ body {
   text-decoration: underline;
 }
 
+.MCPServer {
+  color: #dddddd;
+}
+
 /* Responsive Design */
 @media (max-width: 640px) {
   body {

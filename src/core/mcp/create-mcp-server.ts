@@ -56,7 +56,9 @@ export function createMcpServer (): Server {
   server.setRequestHandler(ListResourcesRequestSchema, async () => getResourcesList());
 
   // Handler for reading resource content
-  server.setRequestHandler(ReadResourceRequestSchema, async (request: IReadResourceRequest) => getResource(request.params.uri));
+  server.setRequestHandler(ReadResourceRequestSchema, async (request: IReadResourceRequest) => {
+    return await getResource(request.params.uri) as any;
+  });
 
   return server;
 }

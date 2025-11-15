@@ -43,11 +43,13 @@ mcp:
 
 swagger:
   servers:  # An array of servers that will be added to swagger docs
-    - url: http://localhost:9020
+    - url: http://localhost:9876
       description: "Local server"
 
+toolAnswerAs: text
+
 webServer:
-  port: 9020
+  port: 9876
   originHosts: ['localhost', '0.0.0.0']
   auth:
     enabled: false

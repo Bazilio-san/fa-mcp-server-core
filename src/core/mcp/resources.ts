@@ -6,7 +6,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ROOT_PROJECT_DIR } from '../constants.js';
 import { appConfig, getProjectData } from '../bootstrap/init-config.js';
-import { IRequiredHttpHeader, IResourceData } from '../_types_/types.js';
+import { IRequiredHttpHeader, IResource, IResourceData, IResourceInfo } from '../_types_/types.js';
 
 let readme = fs.readFileSync(path.join(ROOT_PROJECT_DIR, './README.md'), 'utf-8');
 let packageJson: any;
@@ -38,8 +38,8 @@ installation, launch (STDIO/HTTP), MCP API, configuration, testing and deploymen
         uri: 'required://http-headers',
         name: 'Required http headers',
         description: 'Required http headers',
-        mimeType: 'application/json',
-        content: requiredHttpHeaders,
+        mimeType: 'text/plain',
+        content: JSON.stringify(requiredHttpHeaders),
       },
     );
   }
@@ -47,36 +47,41 @@ installation, launch (STDIO/HTTP), MCP API, configuration, testing and deploymen
 };
 
 // Lazy initialization - resources are created when first accessed
-let _resources: any[] | null = null;
+let _resources: IResourceData[] = [];
 
-const getResources = () => {
-  if (!_resources) {
+const getResources = (): IResourceData[] => {
+  if (!_resources?.length) {
     _resources = createResources();
   }
   return _resources;
 };
 
-export const getResourcesList = () => {
-  const resources = getResources();
+export const getResourcesList = (): { resources: IResourceInfo[] } => {
+  const resources: IResourceData[] = getResources();
   return {
     resources: resources.map(({ content, ...rest }) => ({ ...rest })),
   };
 };
 
-export const getResource = (uri: string) => {
+export const getResource = async (uri: string): Promise<IResource> => {
   const resources = getResources();
   const resource = resources.find((r) => r.uri === uri);
-
   if (!resource) {
     throw new Error(`Unknown resource: ${uri}`);
   }
-
+  let { content } = resource;
+  if (typeof content === 'function') {
+    content = await content(uri);
+  }
+  if (!content) {
+    throw new Error(`Can not get content of resource '${uri}' by custom handler`);
+  }
   return {
     contents: [
       {
         uri: resource.uri,
         mimeType: resource.mimeType,
-        text: resource.content,
+        text: content,
       },
     ],
   };
