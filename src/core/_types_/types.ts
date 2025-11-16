@@ -103,3 +103,19 @@ export interface IReadResourceRequest {
   };
   id?: string | number; // if you are using RPC with a correlation
 }
+
+export interface IToolProperties {
+  [x: string]: {
+    type: string;
+    description?: string;
+    minimum?: number;
+    maximum?: number;
+    [x: string]: any;
+  };
+}
+
+export interface IToolInputSchema {
+  type: 'object';
+  properties?: IToolProperties | undefined;
+  required?: string[] | undefined;
+}

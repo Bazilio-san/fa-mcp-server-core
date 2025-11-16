@@ -1,20 +1,16 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { IToolInputSchema, IToolProperties } from '../../core/_types_/types.js';
 
 /**
  * Template tools configuration for MCP Server
  * Define your tools according to your server's functionality
  */
 
-interface IInputSchemaType {
-  [x: string]: unknown;
-  type: 'object';
-  properties?: {
-    [x: string]: unknown;
-  } | undefined;
-  required?: string[] | undefined;
-}
 
-const getGenericInputSchema = (queryDescription?: string, additionalProperties?: { [key: string]: unknown }): IInputSchemaType => {
+const getGenericInputSchema = (
+  queryDescription?: string,
+  additionalProperties?: IToolProperties,
+): IToolInputSchema => {
   const properties = {
     query: {
       type: 'string',
@@ -30,7 +26,7 @@ const getGenericInputSchema = (queryDescription?: string, additionalProperties?:
   };
 };
 
-const getSearchInputSchema = (): IInputSchemaType => {
+const getSearchInputSchema = (): IToolInputSchema => {
   return {
     type: 'object',
     properties: {

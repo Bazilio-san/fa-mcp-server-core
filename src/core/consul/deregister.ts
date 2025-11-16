@@ -1,8 +1,6 @@
-import * as dotenv from 'dotenv';
+import '../bootstrap/dotenv.js';
 import { getConsulAPI } from './get-consul-api.js';
-import { isMainModule } from '../utils/utils.js';
-
-dotenv.config();
+import { isMainModule, isNonEmptyObject } from '../utils/utils.js';
 
 export const deregisterServiceFromConsul = async () => {
   const [, , svcId, agentHost, agentPort] = process.argv;
@@ -10,11 +8,13 @@ export const deregisterServiceFromConsul = async () => {
   if (!svcId) {
     throw new Error('Service ID (svcId) is required');
   }
-
-  const { deregister } = await getConsulAPI();
-
+  let options: any = { host: agentHost, port: agentPort };
+  if (!isNonEmptyObject(options)) {
+    options = undefined;
+  }
   try {
-    await deregister(svcId, agentHost, agentPort);
+    const { deregister } = await getConsulAPI();
+    await deregister(svcId, options);
   } catch (err) {
     console.error(err);
   }

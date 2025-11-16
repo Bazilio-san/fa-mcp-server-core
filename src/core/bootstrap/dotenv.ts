@@ -1,3 +1,3 @@
 import * as dotenv from 'dotenv';
 
-export const dotEnvResult = dotenv.config();
+export const dotEnvResult = dotenv.config({ quiet: true });
